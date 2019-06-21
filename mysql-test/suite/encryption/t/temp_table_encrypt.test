@@ -1,0 +1,40 @@
+--source include/have_innodb.inc
+--source include/have_file_key_management_plugin.inc
+
+CREATE TEMPORARY TABLE t1(f1 CHAR(200), f2 CHAR(200)) ENGINE=InnoDB;
+INSERT INTO t1 VALUES("mysql", "database"), ("mariadb", "database");
+INSERT INTO t1 SELECT * FROM t1;
+INSERT INTO t1 SELECT * FROM t1;
+INSERT INTO t1 SELECT * FROM t1;
+INSERT INTO t1 SELECT * FROM t1;
+INSERT INTO t1 SELECT * FROM t1;
+INSERT INTO t1 SELECT * FROM t1;
+INSERT INTO t1 SELECT * FROM t1;
+INSERT INTO t1 SELECT * FROM t1;
+INSERT INTO t1 SELECT * FROM t1;
+INSERT INTO t1 SELECT * FROM t1;
+INSERT INTO t1 SELECT * FROM t1;
+
+CREATE TEMPORARY TABLE t2(f1 CHAR(100), f2 CHAR(200), f3 CHAR(200))ENGINE=InnoDB;
+INSERT INTO t2 VALUES ("mysql", "mysql", "mysql"), ("mariadb", "mariadb", "mariadb");
+INSERT INTO t2 SELECT * FROM t2;
+INSERT INTO t2 SELECT * FROM t2;
+INSERT INTO t2 SELECT * FROM t2;
+INSERT INTO t2 SELECT * FROM t2;
+INSERT INTO t2 SELECT * FROM t2;
+INSERT INTO t2 SELECT * FROM t2;
+INSERT INTO t2 SELECT * FROM t2;
+INSERT INTO t2 SELECT * FROM t2;
+INSERT INTO t2 SELECT * FROM t2;
+INSERT INTO t2 SELECT * FROM t2;
+INSERT INTO t2 SELECT * FROM t2;
+INSERT INTO t2 SELECT * FROM t2;
+INSERT INTO t2 SELECT * FROM t2;
+
+SELECT COUNT(*) FROM t1;
+SELECT variable_value > 0 FROM information_schema.global_status
+WHERE variable_name = 'innodb_encryption_n_temp_blocks_encrypted';
+
+SELECT variable_value > 0 FROM information_schema.global_status
+WHERE variable_name = 'innodb_encryption_n_temp_blocks_decrypted';
+--source include/restart_mysqld.inc

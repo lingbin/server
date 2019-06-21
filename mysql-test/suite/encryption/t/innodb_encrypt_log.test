@@ -13,6 +13,8 @@
 
 --let $MYSQLD_DATADIR=`select @@datadir`
 
+call mtr.add_suppression("InnoDB: InnoDB: Ignoring encryption parameter during temporary table creation.");
+
 SET GLOBAL innodb_log_checksums=0;
 SELECT @@global.innodb_log_checksums;
 

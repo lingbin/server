@@ -325,9 +325,18 @@ fil_encrypt_buf(
 	bool			use_full_checksum)
 	MY_ATTRIBUTE((warn_unused_result));
 
-/**
-Encrypt a page.
+/** Encrypt a buffer of temporary tablespace
+@param[in]	offset		Page offset
+@param[in]	src_frame	Page to encrypt
+@param[in,out]	dst_frame	Output buffer
+@return encrypted buffer or NULL */
+UNIV_INTERN
+byte* fil_tmp_space_encrypt(
+	ulint	offset,
+	byte*	src_frame,
+	byte*	dst_frame);
 
+/** Encrypt a page.
 @param[in]		space		Tablespace
 @param[in]		offset		Page offset
 @param[in]		lsn		Log sequence number
@@ -344,6 +353,13 @@ fil_space_encrypt(
 	byte*		dst_frame)
 	MY_ATTRIBUTE((warn_unused_result));
 
+/** Decrypt a page for temporary tablespace.
+@param[in,out]  tmp_frame       Temporary buffer
+@param[in]      src_frame       Page to decrypt
+@return true if temporary tablespace decrypted, false if not */
+bool fil_tmp_space_decrypt(
+        byte*           tmp_frame,
+        byte*           src_frame);
 
 /** Decrypt a page.
 @param]in]	space_id		space id

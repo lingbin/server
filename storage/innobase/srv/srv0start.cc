@@ -995,6 +995,10 @@ srv_open_tmp_tablespace(bool create_new_db)
 	srv_tmp_space.delete_files();
 	srv_tmp_space.set_ignore_read_only(true);
 
+	if (srv_encrypt_temp_space && !log_tmp_crypt_init()) {
+		return DB_ERROR;
+	}
+
 	ib::info() << "Creating shared tablespace for temporary tables";
 
 	bool	create_new_temp_space;

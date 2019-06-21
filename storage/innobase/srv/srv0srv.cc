@@ -423,6 +423,10 @@ my_bool	srv_print_innodb_lock_monitor;
 PRIMARY KEY */
 my_bool	srv_force_primary_key;
 
+/** innodb_encrypt_temporary_tables; whether to encrypt the temporary
+tablespace */
+my_bool srv_encrypt_temp_space;
+
 /* Array of English strings describing the current state of an
 i/o handler thread */
 
@@ -1599,6 +1603,12 @@ srv_export_innodb_status(void)
 		srv_stats.n_sec_rec_cluster_reads;
 	export_vars.innodb_sec_rec_cluster_reads_avoided =
 		srv_stats.n_sec_rec_cluster_reads_avoided;
+
+	export_vars.innodb_n_temp_blocks_encrypted =
+		srv_stats.n_temp_blocks_encrypted;
+
+	export_vars.innodb_n_temp_blocks_decrypted =
+		srv_stats.n_temp_blocks_decrypted;
 
 	if (!srv_read_only_mode) {
 	export_vars.innodb_encryption_rotation_pages_read_from_cache =

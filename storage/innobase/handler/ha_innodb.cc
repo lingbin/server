@@ -1150,6 +1150,12 @@ static SHOW_VAR innodb_status_variables[]= {
   {"encryption_n_rowlog_blocks_decrypted",
   (char*)&export_vars.innodb_n_rowlog_blocks_decrypted,
    SHOW_LONGLONG},
+  {"encryption_n_temp_blocks_encrypted",
+  (char*)&export_vars.innodb_n_temp_blocks_encrypted,
+   SHOW_LONGLONG},
+  {"encryption_n_temp_blocks_decrypted",
+  (char*)&export_vars.innodb_n_temp_blocks_decrypted,
+   SHOW_LONGLONG},
 
   /* scrubing */
   {"scrub_background_page_reorganizations",
@@ -3792,8 +3798,8 @@ static int innodb_init_params()
 	}
 #endif
 
-	if ((srv_encrypt_tables || srv_encrypt_log)
-	     && !encryption_key_id_exists(FIL_DEFAULT_ENCRYPTION_KEY)) {
+	if ((srv_encrypt_tables || srv_encrypt_log || srv_encrypt_temp_space)
+	    && !encryption_key_id_exists(FIL_DEFAULT_ENCRYPTION_KEY)) {
 		sql_print_error("InnoDB: cannot enable encryption, "
 				"encryption plugin is not available");
 		DBUG_RETURN(HA_ERR_INITIALIZATION);
@@ -11150,6 +11156,13 @@ err_col:
 	dict_table_add_system_columns(table, heap);
 
 	if (table->is_temporary()) {
+
+		if ((options->encryption == 1 && !srv_encrypt_temp_space)
+		    || (options->encryption == 2 && srv_encrypt_temp_space)) {
+			ib::warn() << "InnoDB: Ignoring encryption parameter "
+				"during temporary table creation.";	
+		}
+
 		m_trx->table_id = table->id
 			= dict_sys.get_temporary_table_id();
 		ut_ad(dict_tf_get_rec_format(table->flags)
@@ -19635,6 +19648,11 @@ static MYSQL_SYSVAR_ULONG(buf_dump_status_frequency, srv_buf_dump_status_frequen
   "dumped. Default is 0 (only start and end status is printed).",
   NULL, NULL, 0, 0, 100, 0);
 
+static MYSQL_SYSVAR_BOOL(encrypt_temporary_tables, srv_encrypt_temp_space,
+  PLUGIN_VAR_NOCMDARG | PLUGIN_VAR_READONLY,
+  "Enable the variable to encrypt the temporary tablespace data.",
+  NULL, NULL, FALSE);
+
 #ifdef WITH_INNODB_DISALLOW_WRITES
 /*******************************************************
  *    innobase_disallow_writes variable definition     *
@@ -20161,6 +20179,7 @@ static struct st_mysql_sys_var* innobase_system_variables[]= {
 #endif
   MYSQL_SYSVAR(buf_dump_status_frequency),
   MYSQL_SYSVAR(background_thread),
+  MYSQL_SYSVAR(encrypt_temporary_tables),
 
   NULL
 };

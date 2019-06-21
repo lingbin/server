@@ -496,6 +496,22 @@ static bool buf_page_decrypt_after_read(buf_page_t* bpage, fil_space_t* space)
 	tablespace and page contains used key_version. This is true
 	also for pages first compressed and then encrypted. */
 
+	if (space->purpose == FIL_TYPE_TEMPORARY
+	    && srv_encrypt_temp_space) {
+		buf_tmp_buffer_t* slot = buf_pool_reserve_tmp_slot(buf_pool);
+		buf_tmp_reserve_crypt_buf(slot);
+
+		if (buf_page_is_zeroes(dst_frame, srv_page_size)) {
+		} else if (!fil_tmp_space_decrypt(slot->crypt_buf, dst_frame)) {
+			ib::error() << "Encrypted page " << bpage->id
+				    << " in file " << space->chain.start->name;
+			return false;
+		}
+
+		slot->release();
+		return true;
+	}
+
 	buf_tmp_buffer_t* slot;
 	uint key_version = buf_page_get_key_version(dst_frame, space->flags);
 
@@ -5916,9 +5932,19 @@ static dberr_t buf_page_check_corrupt(buf_page_t* bpage, fil_space_t* space)
 	if (!still_encrypted) {
 		/* If traditional checksums match, we assume that page is
 		not anymore encrypted. */
-		if (space->full_crc32()
-		    && !buf_page_is_zeroes(dst_frame, space->physical_size())
-		    && (key_version || space->is_compressed())) {
+
+		if (space->purpose == FIL_TYPE_TEMPORARY
+		    && srv_encrypt_temp_space) {
+
+			if (buf_page_is_zeroes(dst_frame, srv_page_size)) {
+				corrupted = false;
+			} else {
+				corrupted = buf_page_full_crc32_is_corrupted(
+						space->id, dst_frame, false);
+			}
+		} else if (space->full_crc32()
+			   && !buf_page_is_zeroes(dst_frame, space->physical_size())
+			   && (key_version || space->is_compressed())) {
 			corrupted = buf_page_full_crc32_is_corrupted(
 					space->id, dst_frame,
 					space->is_compressed());
@@ -7386,13 +7412,18 @@ buf_page_encrypt(
 
 	fil_space_crypt_t* crypt_data = space->crypt_data;
 
-	const bool encrypted = crypt_data
+	bool encrypted = crypt_data
 		&& !crypt_data->not_encrypted()
 		&& crypt_data->type != CRYPT_SCHEME_UNENCRYPTED
 		&& (!crypt_data->is_default_encryption()
 		    || srv_encrypt_tables);
 
 	bool page_compressed = space->is_compressed();
+
+	if (space->purpose == FIL_TYPE_TEMPORARY
+	    && srv_encrypt_temp_space) {
+		encrypted = true;
+	}
 
 	if (!encrypted && !page_compressed) {
 		/* No need to encrypt or page compress the page.
@@ -7418,7 +7449,7 @@ buf_page_encrypt(
 	byte *dst_frame = slot->crypt_buf;
 	const bool full_crc32 = space->full_crc32();
 
-	if (full_crc32) {
+	if (full_crc32 || space->purpose == FIL_TYPE_TEMPORARY) {
 		/* Write LSN for the full crc32 checksum before
 		encryption. Because lsn is one of the input for encryption. */
 		mach_write_to_8(src_frame + FIL_PAGE_LSN,
@@ -7432,18 +7463,27 @@ buf_page_encrypt(
 
 	if (!page_compressed) {
 not_compressed:
-		/* Encrypt page content */
-		byte* tmp = fil_space_encrypt(space,
-					      bpage->id.page_no(),
-					      bpage->newest_modification,
-					      src_frame,
-					      dst_frame);
+		byte* tmp;
+		if (space->purpose == FIL_TYPE_TEMPORARY) {
+			/** Encrypt temporary page content */
+			tmp = fil_tmp_space_encrypt(bpage->id.page_no(),
+						    src_frame, dst_frame);
+		} else {
+			/* Encrypt page content */
+			tmp = fil_space_encrypt(
+					space,
+					bpage->id.page_no(),
+					bpage->newest_modification,
+					src_frame,
+					dst_frame);
+		}
 
 		bpage->real_size = srv_page_size;
 		slot->out_buf = dst_frame = tmp;
 
 		ut_d(fil_page_type_validate(space, tmp));
 	} else {
+		ut_ad(space->purpose != FIL_TYPE_TEMPORARY);
 		/* First we compress the page content */
 		buf_tmp_reserve_compression_buf(slot);
 		byte* tmp = slot->comp_buf;

@@ -5,6 +5,7 @@
 # MDEV-9422 Encrypted redo log checksum errors
 # on restart after killing busy server instance
 #
+call mtr.add_suppression("InnoDB: InnoDB: Ignoring encryption parameter during temporary table creation.");
 SET GLOBAL innodb_log_checksums=0;
 Warnings:
 Warning	138	innodb_encrypt_log implies innodb_log_checksums

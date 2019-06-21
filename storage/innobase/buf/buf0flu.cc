@@ -967,7 +967,9 @@ buf_flush_write_block_low(
 	      == (space == fil_system.temp_space));
 
 	page_t*	frame = NULL;
-	const bool full_crc32 = space->full_crc32();
+	const bool full_crc32 = (space->full_crc32()
+				 || (space->purpose == FIL_TYPE_TEMPORARY
+				     && srv_encrypt_temp_space));
 
 #ifdef UNIV_DEBUG
 	buf_pool_t*	buf_pool = buf_pool_from_bpage(bpage);
@@ -1130,7 +1132,11 @@ buf_flush_page(
 	rw_lock_t*	rw_lock;
 	bool		no_fix_count = bpage->buf_fix_count == 0;
 
-	if (!is_uncompressed) {
+	if (fsp_is_system_temporary(bpage->id.space())
+	    && srv_shutdown_state != SRV_SHUTDOWN_NONE) {
+		flush = FALSE;
+		buf_flush_remove(bpage);
+	} else if (!is_uncompressed) {
 		flush = TRUE;
 		rw_lock = NULL;
 	} else if (!(no_fix_count || flush_type == BUF_FLUSH_LIST)

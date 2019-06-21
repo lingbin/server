@@ -40,6 +40,7 @@ Modified           Jan Lindström jan.lindstrom@mariadb.com
 #include "fsp0fsp.h"
 #include "fil0pagecompress.h"
 #include <my_crypt.h>
+#include "log0crypt.h"
 
 /** Mutex for keys */
 static ib_mutex_t fil_crypt_key_mutex;
@@ -699,6 +700,37 @@ static bool fil_space_encrypt_valid_page_type(
 	return true;
 }
 
+/** Encrypt a buffer of temporary tablespace
+@param[in]	offset		Page offset
+@param[in]	src_frame	Page to encrypt
+@param[in,out]	dst_frame	Output buffer
+@return encrypted buffer or NULL */
+UNIV_INTERN
+byte* fil_tmp_space_encrypt(
+	ulint	offset,
+	byte*	src_frame,
+	byte*	dst_frame)
+{
+	uint srclen = uint(srv_page_size) -
+			(FIL_PAGE_FILE_FLUSH_LSN_OR_KEY_VERSION
+			 + FIL_PAGE_FCRC32_CHECKSUM);
+	const byte* src = src_frame + FIL_PAGE_FILE_FLUSH_LSN_OR_KEY_VERSION;
+	byte* dst = dst_frame + FIL_PAGE_FILE_FLUSH_LSN_OR_KEY_VERSION;
+
+	/* Till FIL_PAGE_LSN, page is not encrypted */
+	memcpy(dst_frame, src_frame, FIL_PAGE_FILE_FLUSH_LSN_OR_KEY_VERSION);
+
+	if (!log_tmp_block_encrypt(src, srclen, dst, (offset * srv_page_size),
+				   SRV_TMP_SPACE_ID, true, true)) {
+		return NULL;
+	}
+
+	const ulint payload = srv_page_size - FIL_PAGE_FCRC32_CHECKSUM;
+	mach_write_to_4(dst_frame + payload, ut_crc32(dst_frame, payload));
+	srv_stats.pages_encrypted.inc();
+	return dst_frame;
+}
+
 /******************************************************************
 Encrypt a page
 
@@ -793,6 +825,38 @@ fil_space_encrypt(
 #endif /* UNIV_DEBUG */
 
 	return tmp;
+}
+
+/** Decrypt a page for temporary tablespace.
+@param[in,out]	tmp_frame	Temporary buffer
+@param[in]	src_frame	Page to decrypt
+@return true if temporary tablespace decrypted, false if not */
+bool fil_tmp_space_decrypt(
+	byte*		tmp_frame,
+	byte*		src_frame)
+{
+	memcpy(tmp_frame, src_frame, FIL_PAGE_FILE_FLUSH_LSN_OR_KEY_VERSION);
+
+	/* Calculate the offset where decryption starts */
+	ulint offset = mach_read_from_4(src_frame + FIL_PAGE_OFFSET);
+	const byte* src = src_frame + FIL_PAGE_FILE_FLUSH_LSN_OR_KEY_VERSION;
+	byte* dst = tmp_frame + FIL_PAGE_FILE_FLUSH_LSN_OR_KEY_VERSION;
+	uint srclen = uint(srv_page_size) -
+			(FIL_PAGE_FILE_FLUSH_LSN_OR_KEY_VERSION
+			 + FIL_PAGE_FCRC32_CHECKSUM);
+
+	if (!log_tmp_block_encrypt(src, srclen, dst, (offset * srv_page_size),
+				   SRV_TMP_SPACE_ID, false, true)) {
+		return false;
+	}
+
+	memcpy(tmp_frame + srv_page_size - FIL_PAGE_FCRC32_CHECKSUM,
+	       src_frame + srv_page_size - FIL_PAGE_FCRC32_CHECKSUM,
+	       FIL_PAGE_FCRC32_CHECKSUM);
+
+	srv_stats.pages_decrypted.inc();
+	memcpy(src_frame, tmp_frame, srv_page_size);
+	return true;
 }
 
 /** Decrypt a page for full checksum format.

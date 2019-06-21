@@ -42,6 +42,12 @@ UNIV_INTERN
 bool
 log_crypt_init();
 
+/** Initialize the temporary tablespace encryption key and random
+parameters when creating new temporary tablespace.
+@return whether the operation succeeded */
+UNIV_INTERN
+bool log_tmp_crypt_init();
+
 /*********************************************************************//**
 Writes the crypto (version, msg and iv) info, which has been used for
 log blocks with lsn <= this checkpoint's lsn, to a log header's
@@ -98,6 +104,8 @@ bool log_crypt(byte* buf, lsn_t lsn, ulint size, log_crypt_t op = LOG_ENCRYPT);
 @param[in]	offs		offset to block
 @param[in]	space_id	tablespace id
 @param[in]	encrypt		true=encrypt; false=decrypt
+@param[in]	temp_space	temporary tablespace; so use
+				tmp_info.key
 @return whether the operation succeeded */
 UNIV_INTERN
 bool
@@ -107,7 +115,8 @@ log_tmp_block_encrypt(
 	byte*		dst,
 	uint64_t	offs,
 	ulint		space_id,
-	bool		encrypt = true)
+	bool		encrypt = true,
+	bool		temp_space = false)
 	MY_ATTRIBUTE((warn_unused_result, nonnull));
 
 /** Decrypt a temporary file block.

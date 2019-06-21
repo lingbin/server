@@ -32,6 +32,7 @@ MDEV-11782: Rewritten for MariaDB 10.2 by Marko Mäkelä, MariaDB Corporation.
 #include "log0crypt.h"
 #include "srv0start.h" // for srv_start_lsn
 #include "log0recv.h"  // for recv_sys
+#include "srv0srv.h"
 
 /** innodb_encrypt_log: whether to encrypt the redo log */
 my_bool srv_encrypt_log;
@@ -62,6 +63,9 @@ struct crypt_info_t {
 		byte		bytes[4];
 	} crypt_nonce;
 };
+
+/** Crypt info for the temporary tablespace */
+static crypt_info_t	tmp_info;
 
 /** The crypt info */
 static crypt_info_t info;
@@ -266,6 +270,29 @@ log_crypt_init()
 	return init_crypt_key(&info);
 }
 
+UNIV_INTERN
+bool
+log_tmp_crypt_init()
+{
+	tmp_info.key_version = encryption_key_get_latest_version(1);
+
+	if (tmp_info.key_version == ENCRYPTION_KEY_VERSION_INVALID) {
+		ib::error() << "innodb_encrypt_temporary_tables: cannot get "
+			       "key version";
+		tmp_info.key_version = 0;
+		return false;
+	}
+
+	if (my_random_bytes(tmp_info.crypt_msg.bytes, MY_AES_BLOCK_SIZE)
+	    != MY_AES_OK) {
+		ib::error() << "innodb_encrypt_temporary_tables: "
+			"my_random_bytes() failed";
+		return false;
+	}
+
+	return init_crypt_key(&tmp_info);
+}
+
 /** Read the MariaDB 10.1 checkpoint crypto (version, msg and iv) info.
 @param[in]	buf	checkpoint buffer
 @return	whether the operation was successful */
@@ -424,6 +451,8 @@ log_crypt_read_checkpoint_buf(const byte* buf)
 @param[in]	offs		offset to block
 @param[in]	space_id	tablespace id
 @param[in]	encrypt		true=encrypt; false=decrypt
+@param[in]	temp_space	temporary tablespace; so use
+				tmp_info.key
 @return whether the operation succeeded */
 UNIV_INTERN
 bool
@@ -433,7 +462,8 @@ log_tmp_block_encrypt(
 	byte*		dst,
 	uint64_t	offs,
 	ulint		space_id,
-	bool		encrypt)
+	bool		encrypt,
+	bool		temp_space)
 {
 	uint dst_len;
 	uint64_t aes_ctr_iv[MY_AES_BLOCK_SIZE / sizeof(uint64_t)];
@@ -443,16 +473,26 @@ log_tmp_block_encrypt(
 
 	int rc = encryption_crypt(
 		src, (uint)size, dst, &dst_len,
-		info.crypt_key.bytes, MY_AES_BLOCK_SIZE,
+		temp_space ? tmp_info.crypt_key.bytes : info.crypt_key.bytes,
+		MY_AES_BLOCK_SIZE,
 		reinterpret_cast<byte*>(aes_ctr_iv), (uint)(sizeof aes_ctr_iv),
 		encrypt
 		? ENCRYPTION_FLAG_ENCRYPT|ENCRYPTION_FLAG_NOPAD
 		: ENCRYPTION_FLAG_DECRYPT|ENCRYPTION_FLAG_NOPAD,
-		LOG_DEFAULT_ENCRYPTION_KEY, info.key_version);
+		LOG_DEFAULT_ENCRYPTION_KEY,
+		temp_space ? tmp_info.key_version: info.key_version);
 
 	if (rc != MY_AES_OK) {
 		ib::error() << (encrypt ? "Encryption" : "Decryption")
 			    << " failed for temporary file: " << rc;
+	}
+
+	if (temp_space) {
+		if (encrypt) {
+			srv_stats.n_temp_blocks_encrypted.inc();
+		} else {
+			srv_stats.n_temp_blocks_decrypted.inc();
+		}
 	}
 
 	return rc == MY_AES_OK;
