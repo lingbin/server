@@ -32,7 +32,7 @@ SELECT LOWER( REPLACE((SELECT REPLACE(@@hostname,'_','\_')),'%','\%') )INTO @cur
 CREATE TEMPORARY TABLE tmp_db LIKE db;
 INSERT INTO tmp_db VALUES ('%','test','','Y','Y','Y','Y','Y','Y','N','Y','Y','Y','Y','Y','Y','Y','Y','N','N','Y','Y');
 INSERT INTO tmp_db VALUES ('%','test\_%','','Y','Y','Y','Y','Y','Y','N','Y','Y','Y','Y','Y','Y','Y','Y','N','N','Y','Y');
-INSERT INTO db SELECT * FROM tmp_db WHERE @had_db_table=0;
+INSERT INTO db SELECT * FROM tmp_db WHERE @had_db_table=0 AND @skip_test_db IS NULL;
 DROP TABLE tmp_db;
 
 

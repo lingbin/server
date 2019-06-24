@@ -86,6 +86,7 @@ Usage: $0 [OPTIONS]
                        during the MariaDB installation process.
   --skip-auth-anonymous-user
                        Do not install an unprivileged anonymous user.
+  --skip-test-db       Do not grant anonymous access to test database
   --skip-name-resolve  Use IP addresses rather than hostnames when creating
                        grant table entries.  This option can be useful if
                        your DNS does not work.
@@ -173,6 +174,9 @@ parse_arguments()
       --skip-auth-anonymous-user)
 	install_params="$install_params
 SET @skip_auth_anonymous=1;" ;;
+      --skip-test-db)
+	install_params="$install_params
+SET @skip_test_db=1;" ;;
       --auth-root-authentication-method=normal)
 	auth_root_authentication_method=normal ;;
       --auth-root-authentication-method=socket)
@@ -256,6 +260,7 @@ cannot_find_file()
 # Ok, let's go.  We first need to parse arguments which are required by
 # my_print_defaults so that we can execute it first, then later re-parse
 # the command line to add any extra bits that we need.
+parse_arguments --skip-auth-anonymous-user --auth-root-authentication-method=socket --auth-root-socket-user=`whoami` --skip-test-db
 parse_arguments "$@"
 
 #
