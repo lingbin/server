@@ -102,6 +102,7 @@ let $script=
   s{((?:master|slave|slave-relay)-bin\.[0-9]{6};pos=)[0-9]+DOLLAR}{DOLLAR1POS};
   s{SONAME ".*"}{SONAME "LIB"};
   s{DOLLARmysqltest_vardir}{MYSQLTEST_VARDIR}g;
+  $additional_filter;
 ||
 --let $pre_script= my DOLLARmysqltest_vardir = DOLLARENV{'MYSQLTEST_VARDIR'};
 

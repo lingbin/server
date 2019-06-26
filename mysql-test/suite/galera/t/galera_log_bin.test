@@ -21,19 +21,27 @@ SELECT COUNT(*) = 2 FROM t2;
 --connection node_1
 ALTER TABLE t1 ADD COLUMN f2 INTEGER;
 
-FLUSH LOGS;
---replace_column 2 # 4 # 5 #
---replace_regex /table_id: [0-9]+/table_id: #/ /xid=[0-9]+/xid=#/
-SHOW BINLOG EVENTS IN 'mysqld-bin.000002' LIMIT 4,18;
+--let $MASTER_MYPORT=$NODE_MYPORT_1
+--let $binlog_file = query_get_value(show master status,File,1)
+--delimiter ||
+let $additional_filter = s{mysqld-bin\.[0-9]+}{mysqld-bin\.#};
+                          next if /.*Binlog_checkpoint.*/;||
+--delimiter ;
+--source include/show_binlog_events.inc
 
 --connection node_2
-SELECT COUNT(*) = 2 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 't1';
---replace_column 2 # 4 # 5 #
---replace_regex /table_id: [0-9]+/table_id: #/ /xid=[0-9]+/xid=#/
-SHOW BINLOG EVENTS IN 'mysqld-bin.000003' LIMIT 3,18;
+--let $binlog_file = query_get_value(show master status,File,1)
+--delimiter ||
+let $additional_filter = s{mysqld-bin\.[0-9]+}{mysqld-bin\.#};
+                          next if /.*Binlog_checkpoint.*/;||
+--delimiter ;
+--source include/show_binlog_events.inc
 
 DROP TABLE t1;
 DROP TABLE t2;
 
 --connection node_1
+RESET MASTER;
+
+--connection node_2
 RESET MASTER;

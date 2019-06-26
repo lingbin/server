@@ -26,6 +26,11 @@
 #     Limit for the 'LIMIT' clause of SHOW BINLOG EVENTS, i.e.:
 #       $binlog_limit= 3    -- print three events
 #       $binlog_limit= 4, 3 -- skip four events, print the three next events
+#
+#   $additional_filter     #In the form of s{a}{b};
+#     Apply more filter to show_binlog_events result
+
+
 
 --let $include_filename= show_binlog_events.inc
 --source include/begin_include_file.inc
