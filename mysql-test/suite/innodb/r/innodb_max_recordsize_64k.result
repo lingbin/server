@@ -190,6 +190,8 @@ ccol54 VARCHAR(255),ccol55 VARCHAR(255),ccol56 VARCHAR(255),ccol57 VARCHAR(255),
 ccol60 VARCHAR(255),ccol61 VARCHAR(255),ccol62 VARCHAR(255),ccol63 VARCHAR(255),ccol64  VARCHAR(255), ccol65 VARCHAR(255)
 )
 ENGINE = innodb ROW_FORMAT=COMPACT;
+Warnings:
+Warning	139	Row size too large (> 32702). Changing some columns to TEXT or BLOB or using ROW_FORMAT=DYNAMIC or ROW_FORMAT=COMPRESSED may help. In current row format, BLOB prefix of 768 bytes is stored inline.
 INSERT INTO tab5 values(repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),
 repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),
 repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),
@@ -300,6 +302,8 @@ ccol54 VARCHAR(255),ccol55 VARCHAR(255),ccol56 VARCHAR(255),ccol57 VARCHAR(255),
 ccol60 VARCHAR(255),ccol61 VARCHAR(255),ccol62 VARCHAR(255),ccol63 VARCHAR(255),ccol64  VARCHAR(255), ccol65 VARCHAR(255)
 )
 ENGINE = innodb ROW_FORMAT=DYNAMIC;
+Warnings:
+Warning	139	Row size too large (> NNNN). Changing some columns to TEXT or BLOB may help. In current row format, BLOB prefix of 0 bytes is stored inline.
 INSERT INTO tab5 values(repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),
 repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),
 repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),
@@ -440,6 +444,8 @@ ccol54 VARCHAR(255),ccol55 VARCHAR(255),ccol56 VARCHAR(255),ccol57 VARCHAR(255),
 ccol60 VARCHAR(255),ccol61 VARCHAR(255),ccol62 VARCHAR(255),ccol63 VARCHAR(255),ccol64  VARCHAR(255), ccol65 VARCHAR(255)
 )
 ENGINE = innodb ROW_FORMAT=REDUNDANT;
+Warnings:
+Warning	139	Row size too large (> NNNN). Changing some columns to TEXT or BLOB or using ROW_FORMAT=DYNAMIC or ROW_FORMAT=COMPRESSED may help. In current row format, BLOB prefix of 768 bytes is stored inline.
 INSERT INTO tab5 values(repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),
 repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),
 repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),

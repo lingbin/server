@@ -133,6 +133,8 @@ col48 VARCHAR(255),col49 VARCHAR(255),col50 VARCHAR(255),col51 VARCHAR(255),col5
 col54 VARCHAR(255),col55 VARCHAR(255),col56 VARCHAR(255),col57 VARCHAR(255),col58  VARCHAR(255), col59 VARCHAR(255),
 col60 VARCHAR(255),col61 VARCHAR(255),col62 VARCHAR(255),col63 VARCHAR(255),col64  VARCHAR(255), col65  VARCHAR(255))
 ENGINE = innodb ROW_FORMAT=COMPACT;
+Warnings:
+Warning	139	Row size too large (> NNNN). Changing some columns to TEXT or BLOB or using ROW_FORMAT=DYNAMIC or ROW_FORMAT=COMPRESSED may help. In current row format, BLOB prefix of 768 bytes is stored inline.
 INSERT INTO tab5 values(repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),
 repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),
 repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),
@@ -191,6 +193,8 @@ col48 VARCHAR(255),col49 VARCHAR(255),col50 VARCHAR(255),col51 VARCHAR(255),col5
 col54 VARCHAR(255),col55 VARCHAR(255),col56 VARCHAR(255),col57 VARCHAR(255),col58  VARCHAR(255), col59 VARCHAR(255),
 col60 VARCHAR(255),col61 VARCHAR(255),col62 VARCHAR(255),col63 VARCHAR(255),col64  VARCHAR(255), col65  VARCHAR(255))
 ENGINE = innodb ROW_FORMAT=DYNAMIC;
+Warnings:
+Warning	139	Row size too large (> NNNN). Changing some columns to TEXT or BLOB may help. In current row format, BLOB prefix of 0 bytes is stored inline.
 INSERT INTO tab5 values(repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),
 repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),
 repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),
@@ -265,6 +269,8 @@ col48 VARCHAR(255),col49 VARCHAR(255),col50 VARCHAR(255),col51 VARCHAR(255),col5
 col54 VARCHAR(255),col55 VARCHAR(255),col56 VARCHAR(255),col57 VARCHAR(255),col58  VARCHAR(255), col59 VARCHAR(255),
 col60 VARCHAR(255),col61 VARCHAR(255),col62 VARCHAR(255),col63 VARCHAR(255),col64  VARCHAR(255), col65  VARCHAR(255))
 ENGINE = innodb ROW_FORMAT=REDUNDANT;
+Warnings:
+Warning	139	Row size too large (> NNNN). Changing some columns to TEXT or BLOB or using ROW_FORMAT=DYNAMIC or ROW_FORMAT=COMPRESSED may help. In current row format, BLOB prefix of 768 bytes is stored inline.
 INSERT INTO tab5 values(repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),
 repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),
 repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),repeat('a',255),
@@ -310,6 +316,7 @@ col60 VARCHAR(255),col61 VARCHAR(255),col62 VARCHAR(255),col63 VARCHAR(255),col6
 ENGINE = innodb ROW_FORMAT=COMPRESSED;
 Warnings:
 Warning	1478	InnoDB: Cannot create a COMPRESSED table when innodb_page_size > NNNNk. Assuming ROW_FORMAT=DYNAMIC.
+Warning	139	Row size too large (> NNNN). Changing some columns to TEXT or BLOB may help. In current row format, BLOB prefix of 0 bytes is stored inline.
 DROP TABLE tab5;
 CREATE TABLE t(col BLOB) ENGINE=InnoDB ROW_FORMAT=DYNAMIC;
 SHOW WARNINGS;
