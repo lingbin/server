@@ -9681,14 +9681,18 @@ ha_innobase::change_active_index(
 	since FT search returns rank only. In addition engine should
 	be able to retrieve FTS_DOC_ID column value if necessary. */
 	if ((m_prebuilt->index->type & DICT_FTS)) {
-#ifdef MYSQL_STORE_FTS_DOC_ID
-		if (table->fts_doc_id_field
-		    && bitmap_is_set(table->read_set,
-				     table->fts_doc_id_field->field_index
-				     && m_prebuilt->read_just_key)) {
-			m_prebuilt->fts_doc_id_in_read_set = 1;
+
+		for (ulint i = 0; i < table->s->fields; i++) {
+			if (!strcmp(table->s->field[i]->field_name,
+				    FTS_DOC_ID_COL_NAME)) {
+				m_prebuilt->fts_doc_id_in_read_set =
+					bitmap_is_set(
+						table->read_set,
+						table->s->field[i]->field_index
+						&& m_prebuilt->read_just_key);
+				break;
+			}
 		}
-#endif
 	} else {
 		dtuple_set_n_fields(m_prebuilt->search_tuple,
 				    m_prebuilt->index->n_fields);
@@ -9699,13 +9703,13 @@ ha_innobase::change_active_index(
 
 		/* If it's FTS query and FTS_DOC_ID exists FTS_DOC_ID field is
 		always added to read_set. */
-
-#ifdef MYSQL_STORE_FTS_DOC_ID
-		m_prebuilt->fts_doc_id_in_read_set =
-			(m_prebuilt->read_just_key && table->fts_doc_id_field
-			 && m_prebuilt->in_fts_query);
-#endif
-
+		if (m_prebuilt->in_fts_query
+		    && dict_index_contains_col_or_prefix(
+				m_prebuilt->index, m_prebuilt->table->fts->doc_col,
+				false)) {
+			m_prebuilt->fts_doc_id_in_read_set =
+				m_prebuilt->read_just_key;
+		}
 	}
 
 	/* MySQL changes the active index for a handle also during some
