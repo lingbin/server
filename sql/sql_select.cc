@@ -10248,7 +10248,7 @@ bool JOIN::get_best_combination()
   JOIN_TAB_RANGE *root_range;
   if (!(root_range= new (thd->mem_root) JOIN_TAB_RANGE))
     DBUG_RETURN(TRUE);
-   root_range->start= join_tab;
+  root_range->start= join_tab;
   /* root_range->end will be set later */
   join_tab_ranges.empty();
 
@@ -10323,7 +10323,7 @@ bool JOIN::get_best_combination()
       j->type=JT_ALL;
       if (best_positions[tablenr].use_join_buffer &&
           tablenr != const_tables)
-	full_join= 1;
+      full_join= 1;
     }
 
     /*if (best_positions[tablenr].sj_strategy == SJ_OPT_LOOSE_SCAN)
@@ -10356,12 +10356,51 @@ bool JOIN::get_best_combination()
       sjm_nest_root= NULL;
       sjm_nest_end= NULL;
     }
+    if (cur_pos->ordering_achieved)
+    {
+      /*
+        Ok, we've entered an ORDERING nest
+        1. Put into main join order a JOIN_TAB that represents a scan
+           in the temptable.
+      */
+      JOIN_TAB *prev= j;
+      j= j+1;
+      bzero((void*)j, sizeof(JOIN_TAB));
+
+      j->join= this;
+      j->table= NULL; //temporary way to tell SJM tables from others.
+      j->ref.key = -1;
+      j->on_expr_ref= (Item**) &null_ptr;
+      j->is_order_nest= TRUE;
+      j->records_read= prev->records_read * prev->cond_selectivity;
+      j->records= (ha_rows) j->records_read;
+
+      j->cond_selectivity= 1.0;
+      JOIN_TAB_RANGE *jt_range;
+      if (!(jt_range= new JOIN_TAB_RANGE))
+        DBUG_RETURN(TRUE);
+
+      jt_range->start= join_tab;
+      jt_range->end= j;
+      join_tab_ranges.push_back(jt_range, thd->mem_root);
+      j->order_nest_children= jt_range;
+
+      root_range->start= j;
+      join_tab= j;
+      prev->last_table_in_order_nest= TRUE;
+    }
   }
   root_range->end= j;
 
   used_tables= OUTER_REF_TABLE_BIT;		// Outer row is already read
   for (j=join_tab, tablenr=0 ; tablenr < table_count ; tablenr++,j++)
   {
+    if (j->is_order_nest)
+    {
+      DBUG_ASSERT(j->order_nest_children);
+      j= j->order_nest_children->start;
+    }
+
     if (j->bush_children)
       j= j->bush_children->start;
 
@@ -10374,6 +10413,12 @@ bool JOIN::get_best_combination()
     }
     if (j->last_leaf_in_bush)
       j= j->bush_root_tab;
+
+    if (j->last_table_in_order_nest)
+    {
+      DBUG_ASSERT(j->order_nest_children);
+      j= join_tab;
+    }
   }
  
   top_join_tab_count= (uint)(join_tab_ranges.head()->end - 
