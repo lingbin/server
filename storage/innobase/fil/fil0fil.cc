@@ -4380,7 +4380,6 @@ fil_io(
 
 	req_type.set_fil_node(node);
 
-#ifdef UNIV_DEBUG
 	if (req_type.is_write()
 	    && page_id.space() != SRV_LOG_SPACE_FIRST_ID
 	    && (page_id.space() != TRX_SYS_SPACE
@@ -4390,9 +4389,8 @@ fil_io(
 		|| page_id.page_no() >=
 			(buf_dblwr->block2 + TRX_SYS_DOUBLEWRITE_BLOCK_SIZE)))) {
 
-		ut_ad(offset == page_id.page_no() * page_size.physical());
+		ut_a(offset == page_id.page_no() * page_size.physical());
 	}
-#endif /* UNIV_DEBUG */
 
 	/* Queue the aio request */
 	dberr_t err = os_aio(
