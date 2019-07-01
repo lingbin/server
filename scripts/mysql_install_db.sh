@@ -476,7 +476,8 @@ then
   fi
   if test -z "$srcdir"
   then
-    chown 0 "$pamtooldir/auth_pam_tool_dir/auth_pam_tool"
+    chown 0 "$pamtooldir/auth_pam_tool_dir/auth_pam_tool" && \
+    chmod 04755 "$pamtooldir/auth_pam_tool_dir/auth_pam_tool"
     if test $? -ne 0
     then
         echo "Couldn't set an owner to '$pamtooldir/auth_pam_tool_dir/auth_pam_tool'."

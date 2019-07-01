@@ -43,8 +43,10 @@ PrivateNetwork=false
 User=mysql
 Group=mysql
 
-# To allow memlock to be used as non-root user if set in configuration
-CapabilityBoundingSet=CAP_IPC_LOCK
+# CAP_IPC_LOCK To allow memlock to be used as non-root user
+# CAP_DAC_OVERRIDE To allow auth_pam_tool (which is SUID root) to read /etc/shadow when it's chmod 0
+#   does nothing for non-root, not needed if /etc/shadow is u+r
+CapabilityBoundingSet=CAP_IPC_LOCK CAP_DAC_OVERRIDE
 
 # Prevent writes to /usr, /boot, and /etc
 ProtectSystem=full
